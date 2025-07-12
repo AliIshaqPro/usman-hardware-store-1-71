@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Plus, Pin, PinOff, Info, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductDetailsModal } from "./ProductDetailsModal";
 import { useStockManagement } from '@/hooks/useStockManagement';
+import { formatQuantity } from "@/lib/utils";
 
 interface ProductCardProps {
   product: any;
@@ -33,8 +33,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [isValidating, setIsValidating] = useState(false);
 
   const handleQuantityInputChange = (value: string) => {
-    // Allow decimal numbers
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+    // Allow decimal numbers with up to 2 decimal places
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
       onQuantityChange(product.id, value);
     }
   };
@@ -74,7 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     } else {
       toast({
         title: "Invalid Quantity",
-        description: "Please enter a valid quantity",
+        description: "Please enter a valid quantity (e.g., 1, 0.5, 2.25)",
         variant: "destructive"
       });
     }
@@ -192,7 +192,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   </span>
                 ) : (
                   <>
-                    {product.stock} {product.unit} available
+                    {formatQuantity(product.stock)} {product.unit} available
                   </>
                 )}
               </div>
@@ -225,7 +225,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </Button>
             </div>
             
-            {/* Quick Add Button - Now uses input quantity or defaults to 1 */}
+            {/* Quick Add Button */}
             <Button
               onClick={handleQuickAdd}
               className={`w-full text-white text-[10px] h-6 ${
@@ -240,11 +240,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {isValidating ? (
                 'Validating...'
               ) : hasIncompleteQuantity ? (
-                <>Quick Add ({quantityInput || '1'} {product.unit}) ⚠️</>
+                <>Quick Add ({formatQuantity(quantityInput || '1')} {product.unit}) ⚠️</>
               ) : isOutOfStock ? (
                 'Out of Stock'
               ) : (
-                <>Quick Add ({quantityInput || '1'} {product.unit})</>
+                <>Quick Add ({formatQuantity(quantityInput || '1')} {product.unit})</>
               )}
             </Button>
           </div>

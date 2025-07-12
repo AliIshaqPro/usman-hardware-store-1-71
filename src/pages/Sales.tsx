@@ -16,6 +16,7 @@ import { QuickProductAddModal } from "@/components/sales/QuickProductAddModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import { formatQuantity } from "@/lib/utils";
 
 interface CartItem {
   productId: number;
@@ -227,14 +228,42 @@ const formatPakistaniTime = (timeString: string): string => {
     });
   };
 
+  const handleQuantityInputChange = (productId: number, value: string) => {
+    // Allow decimal numbers with up to 2 decimal places
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setQuantityInputs(prev => ({...prev, [productId]: value}));
+    }
+  };
+
+  const addCustomQuantityToCart = (product: any) => {
+    const inputValue = quantityInputs[product.id];
+    const quantity = parseFloat(inputValue);
+    
+    if (inputValue && !isNaN(quantity) && quantity > 0) {
+      // Round to 2 decimal places to match database precision
+      const roundedQuantity = Math.round(quantity * 100) / 100;
+      addToCartWithCustomQuantity(product, roundedQuantity);
+    } else {
+      toast({
+        title: "Invalid Quantity",
+        description: "Please enter a valid quantity (e.g., 1, 0.5, 2.25)",
+        variant: "destructive"
+      });
+    }
+  };
+
   const addToCartWithCustomQuantity = (product: any, customQuantity?: number) => {
     const quantity = customQuantity || 1;
+    // Round to 2 decimal places to match database precision
+    const roundedQuantity = Math.round(quantity * 100) / 100;
+    
     const existingItem = cart.find(item => item.productId === product.id);
     
     if (existingItem) {
+      const newQuantity = Math.round((existingItem.quantity + roundedQuantity) * 100) / 100;
       setCart(cart.map(item => 
         item.productId === product.id 
-          ? { ...item, quantity: item.quantity + quantity }
+          ? { ...item, quantity: newQuantity }
           : item
       ));
     } else {
@@ -242,7 +271,7 @@ const formatPakistaniTime = (timeString: string): string => {
         productId: product.id,
         name: product.name,
         price: product.price,
-        quantity: quantity,
+        quantity: roundedQuantity,
         sku: product.sku,
         unit: product.unit
       }]);
@@ -253,39 +282,19 @@ const formatPakistaniTime = (timeString: string): string => {
 
     toast({
       title: "Added to Cart",
-      description: `${quantity} ${product.unit} of ${product.name} added to cart`,
+      description: `${formatQuantity(roundedQuantity)} ${product.unit} of ${product.name} added to cart`,
     });
-  };
-
-  const handleQuantityInputChange = (productId: number, value: string) => {
-    // Allow decimal numbers
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      setQuantityInputs(prev => ({...prev, [productId]: value}));
-    }
-  };
-
-  const addCustomQuantityToCart = (product: any) => {
-    const inputValue = quantityInputs[product.id];
-    const quantity = parseFloat(inputValue);
-    
-    if (inputValue && !isNaN(quantity) && quantity > 0) {
-      addToCartWithCustomQuantity(product, quantity);
-    } else {
-      toast({
-        title: "Invalid Quantity",
-        description: "Please enter a valid quantity",
-        variant: "destructive"
-      });
-    }
   };
 
   const updateCartQuantity = (productId: number, quantity: number) => {
     if (quantity <= 0) {
       setCart(cart.filter(item => item.productId !== productId));
     } else {
+      // Round to 2 decimal places to match database precision
+      const roundedQuantity = Math.round(quantity * 100) / 100;
       setCart(cart.map(item => 
         item.productId === productId 
-          ? { ...item, quantity }
+          ? { ...item, quantity: roundedQuantity }
           : item
       ));
     }
@@ -749,7 +758,7 @@ const formatPakistaniTime = (timeString: string): string => {
     return (a.name || '').localeCompare(b.name || '');
   });
 
-  // Calculate total cart items and value (without tax)
+  // Calculate total cart items and value (with proper decimal handling)
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalCartValue = cart.reduce((sum, item) => {
     const finalPrice = item.adjustedPrice || item.price;

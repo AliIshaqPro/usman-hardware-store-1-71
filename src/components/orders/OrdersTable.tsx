@@ -1,9 +1,9 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Calendar, Eye, FileText, User } from "lucide-react";
+import { formatQuantity } from "@/lib/utils";
 
 interface Sale {
   id: number;
@@ -70,16 +70,6 @@ export const OrdersTable = ({
       default:
         return <Badge variant="outline">{method}</Badge>;
     }
-  };
-
-  // Helper function to format quantity properly
-  const formatQuantity = (quantity: number) => {
-    // If quantity is a whole number, show without decimals
-    if (quantity % 1 === 0) {
-      return quantity.toString();
-    }
-    // If quantity has decimals, show up to 2 decimal places, removing trailing zeros
-    return parseFloat(quantity.toFixed(2)).toString();
   };
 
   return (
