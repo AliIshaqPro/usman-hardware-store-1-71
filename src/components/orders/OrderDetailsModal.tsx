@@ -45,6 +45,16 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
   const [customerSearch, setCustomerSearch] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
+  // Helper function to format quantity properly
+  const formatQuantity = (quantity: number) => {
+    // If quantity is a whole number, show without decimals
+    if (quantity % 1 === 0) {
+      return quantity.toString();
+    }
+    // If quantity has decimals, show up to 2 decimal places, removing trailing zeros
+    return parseFloat(quantity.toFixed(2)).toString();
+  };
+
   // FIXED: Move useEffect before early return to follow Rules of Hooks
   useEffect(() => {
     if (order) {
@@ -585,7 +595,7 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                         order.items.map((item: any, index: number) => (
                           <TableRow key={index}>
                             <TableCell>{item.productName || 'Unknown Product'}</TableCell>
-                            <TableCell>{item.quantity || 0}</TableCell>
+                            <TableCell>{formatQuantity(item.quantity || 0)}</TableCell>
                             <TableCell>PKR {(item.unitPrice || 0).toFixed(2)}</TableCell>
                             <TableCell>PKR {(item.total || 0).toFixed(2)}</TableCell>
                           </TableRow>
@@ -678,7 +688,7 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                           <div>
                             <h4 className="font-semibold text-gray-800">{item.productName}</h4>
                             <p className="text-sm text-gray-600">
-                              Original Quantity: <span className="font-medium">{item.originalQuantity}</span>
+                              Original Quantity: <span className="font-medium">{formatQuantity(item.originalQuantity)}</span>
                             </p>
                           </div>
                           <div className="text-right">
@@ -698,7 +708,7 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                                 variant="outline"
                                 size="sm"
                                 className="h-8 w-8 p-0"
-                                onClick={() => updateReturnQuantity(index, item.returnQuantity - 1)}
+                                onClick={() => updateReturnQuantity(index, item.returnQuantity - 0.1)}
                                 disabled={item.returnQuantity <= 0}
                               >
                                 <Minus className="h-3 w-3" />
@@ -708,8 +718,9 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                                 type="number"
                                 min="0"
                                 max={item.originalQuantity}
+                                step="0.1"
                                 value={item.returnQuantity}
-                                onChange={(e) => updateReturnQuantity(index, parseInt(e.target.value) || 0)}
+                                onChange={(e) => updateReturnQuantity(index, parseFloat(e.target.value) || 0)}
                                 className="w-20 text-center"
                               />
                               <Button
@@ -717,7 +728,7 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                                 variant="outline"
                                 size="sm"
                                 className="h-8 w-8 p-0"
-                                onClick={() => updateReturnQuantity(index, item.returnQuantity + 1)}
+                                onClick={() => updateReturnQuantity(index, item.returnQuantity + 0.1)}
                                 disabled={item.returnQuantity >= item.originalQuantity}
                               >
                                 <Plus className="h-3 w-3" />
@@ -778,7 +789,7 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                           .filter(item => item.returnQuantity > 0)
                           .map((item, index) => (
                             <div key={index} className="flex justify-between text-blue-700">
-                              <span>{item.productName} x {item.returnQuantity}</span>
+                              <span>{item.productName} x {formatQuantity(item.returnQuantity)}</span>
                               <span>PKR {(item.returnQuantity * item.unitPrice).toFixed(2)}</span>
                             </div>
                           ))}

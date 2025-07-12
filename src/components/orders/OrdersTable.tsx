@@ -72,6 +72,16 @@ export const OrdersTable = ({
     }
   };
 
+  // Helper function to format quantity properly
+  const formatQuantity = (quantity: number) => {
+    // If quantity is a whole number, show without decimals
+    if (quantity % 1 === 0) {
+      return quantity.toString();
+    }
+    // If quantity has decimals, show up to 2 decimal places, removing trailing zeros
+    return parseFloat(quantity.toFixed(2)).toString();
+  };
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -110,7 +120,12 @@ export const OrdersTable = ({
                     <div className="text-sm">
                       {order.items.length} item{order.items.length > 1 ? 's' : ''}
                       <div className="text-xs text-slate-500">
-                        {order.items.slice(0, 2).map(item => item.productName).join(', ')}
+                        {order.items.slice(0, 2).map((item, index) => (
+                          <span key={index}>
+                            {item.productName} x {formatQuantity(item.quantity)}
+                            {index < Math.min(1, order.items.length - 1) && ', '}
+                          </span>
+                        ))}
                         {order.items.length > 2 && '...'}
                       </div>
                     </div>

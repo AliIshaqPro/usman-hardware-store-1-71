@@ -16,6 +16,16 @@ export function PendingOrdersModal({ open, onOpenChange }: PendingOrdersModalPro
   const { toast } = useToast();
   const pendingOrders = getPendingOrders();
 
+  // Helper function to format quantity properly
+  const formatQuantity = (quantity: number) => {
+    // If quantity is a whole number, show without decimals
+    if (quantity % 1 === 0) {
+      return quantity.toString();
+    }
+    // If quantity has decimals, show up to 2 decimal places, removing trailing zeros
+    return parseFloat(quantity.toFixed(2)).toString();
+  };
+
   const handleRemoveOrder = (orderId: string) => {
     removePendingOrder(orderId);
     toast({
@@ -94,7 +104,7 @@ export function PendingOrdersModal({ open, onOpenChange }: PendingOrdersModalPro
                     <div key={index} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
                       <div className="flex-1">
                         <span className="font-medium">{item.productName}</span>
-                        <span className="text-gray-500 ml-2">x {item.quantity}</span>
+                        <span className="text-gray-500 ml-2">x {formatQuantity(item.quantity)}</span>
                       </div>
                       <div className="text-right">
                         <span className="font-medium">PKR {item.total.toLocaleString()}</span>
