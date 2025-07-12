@@ -127,6 +127,7 @@ function ims_get_inventory($request) {
         
         $summary = $wpdb->get_row($summary_sql);
         
+        
         // Format response
         $formatted_inventory = array();
         foreach ($inventory as $item) {
