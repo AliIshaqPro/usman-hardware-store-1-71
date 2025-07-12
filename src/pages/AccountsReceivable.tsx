@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,28 +42,26 @@ const AccountsReceivable = () => {
       if (response.success) {
         setApiConnected(true);
         
-        // IMPROVED: More robust deduplication using Map to track unique combinations
-        const uniqueReceivablesMap = new Map();
+        // IMPROVED: More robust deduplication using Set to track unique invoice numbers
+        const seenInvoices = new Set();
+        const uniqueReceivables: AccountsReceivableType[] = [];
         
         response.data.receivables.forEach((item) => {
           // Only include items with outstanding balance
           if (item.balance > 0) {
-            // Create a comprehensive unique key
-            const uniqueKey = `${item.customerId}-${item.invoiceNumber}-${item.orderNumber}`;
+            // Create a unique identifier based on invoice number only
+            const uniqueKey = item.invoiceNumber;
             
-            // If this key doesn't exist, or if this item has a more recent ID, use it
-            if (!uniqueReceivablesMap.has(uniqueKey) || 
-                (uniqueReceivablesMap.has(uniqueKey) && item.id > uniqueReceivablesMap.get(uniqueKey).id)) {
-              uniqueReceivablesMap.set(uniqueKey, item);
+            // If we haven't seen this invoice number before, add it
+            if (!seenInvoices.has(uniqueKey)) {
+              seenInvoices.add(uniqueKey);
+              uniqueReceivables.push(item);
             }
           }
         });
         
-        // Convert Map back to array
-        const uniqueReceivables = Array.from(uniqueReceivablesMap.values());
-        
         console.log('Original receivables:', response.data.receivables.length);
-        console.log('Unique receivables after improved deduplication:', uniqueReceivables.length);
+        console.log('Unique receivables after deduplication:', uniqueReceivables.length);
         console.log('Filtered receivables:', uniqueReceivables);
         
         setReceivables(uniqueReceivables);
@@ -78,6 +77,19 @@ const AccountsReceivable = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to format dates safely
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "No due date";
+    
+    const date = new Date(dateString);
+    // Check if date is valid and not the Unix epoch
+    if (isNaN(date.getTime()) || dateString === "1970-01-01" || date.getFullYear() === 1970) {
+      return "No due date";
+    }
+    
+    return date.toLocaleDateString();
   };
 
   const handleCallCustomer = (customer: AccountsReceivableType) => {
@@ -107,7 +119,7 @@ const AccountsReceivable = () => {
         
         // Remove the specific item from the local state instead of refetching
         setReceivables(prev => prev.filter(item => 
-          !(item.customerId === customer.customerId && item.invoiceNumber === customer.invoiceNumber)
+          item.invoiceNumber !== customer.invoiceNumber
         ));
         
         // Update summary
@@ -283,12 +295,12 @@ const AccountsReceivable = () => {
         <CardContent>
           <div className="space-y-4 custom-scrollbar max-h-[600px] overflow-y-auto">
             {filteredReceivables.map((item) => (
-              <div key={`${item.customerId}-${item.invoiceNumber}-${item.orderNumber}`} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+              <div key={item.invoiceNumber} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
                 <div className="flex items-center gap-4">
                   <div>
                     <h3 className="font-medium text-gray-300">{item.customerName}</h3>
                     <p className="text-sm text-gray-300">Invoice: {item.invoiceNumber}</p>
-                    <p className="text-xs text-slate-500">Due: {new Date(item.dueDate).toLocaleDateString()}</p>
+                    <p className="text-xs text-slate-500">Due: {formatDate(item.dueDate)}</p>
                   </div>
                 </div>
                 
