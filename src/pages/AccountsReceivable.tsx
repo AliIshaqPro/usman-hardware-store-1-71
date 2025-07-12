@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,23 +41,28 @@ const AccountsReceivable = () => {
       if (response.success) {
         setApiConnected(true);
         
-        // Enhanced deduplication: create a unique key and filter by it
-        const uniqueReceivables = response.data.receivables.filter((item, index, self) => {
-          // Create a unique identifier combining multiple fields
-          const uniqueKey = `${item.customerId}-${item.invoiceNumber}-${item.amount}-${item.balance}`;
-          
-          // Find the first occurrence of this unique combination
-          const firstIndex = self.findIndex((r) => {
-            const compareKey = `${r.customerId}-${r.invoiceNumber}-${r.amount}-${r.balance}`;
-            return compareKey === uniqueKey;
-          });
-          
-          // Only include if this is the first occurrence and has outstanding balance
-          return index === firstIndex && item.balance > 0;
+        // IMPROVED: More robust deduplication using Map to track unique combinations
+        const uniqueReceivablesMap = new Map();
+        
+        response.data.receivables.forEach((item) => {
+          // Only include items with outstanding balance
+          if (item.balance > 0) {
+            // Create a comprehensive unique key
+            const uniqueKey = `${item.customerId}-${item.invoiceNumber}-${item.orderNumber}`;
+            
+            // If this key doesn't exist, or if this item has a more recent ID, use it
+            if (!uniqueReceivablesMap.has(uniqueKey) || 
+                (uniqueReceivablesMap.has(uniqueKey) && item.id > uniqueReceivablesMap.get(uniqueKey).id)) {
+              uniqueReceivablesMap.set(uniqueKey, item);
+            }
+          }
         });
         
+        // Convert Map back to array
+        const uniqueReceivables = Array.from(uniqueReceivablesMap.values());
+        
         console.log('Original receivables:', response.data.receivables.length);
-        console.log('Unique receivables after enhanced deduplication:', uniqueReceivables.length);
+        console.log('Unique receivables after improved deduplication:', uniqueReceivables.length);
         console.log('Filtered receivables:', uniqueReceivables);
         
         setReceivables(uniqueReceivables);
@@ -279,7 +283,7 @@ const AccountsReceivable = () => {
         <CardContent>
           <div className="space-y-4 custom-scrollbar max-h-[600px] overflow-y-auto">
             {filteredReceivables.map((item) => (
-              <div key={`${item.customerId}-${item.invoiceNumber}-${item.id}-${item.amount}`} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+              <div key={`${item.customerId}-${item.invoiceNumber}-${item.orderNumber}`} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
                 <div className="flex items-center gap-4">
                   <div>
                     <h3 className="font-medium text-gray-300">{item.customerName}</h3>
