@@ -45,19 +45,64 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
   const [customerSearch, setCustomerSearch] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
-  // Helper function to format quantity properly
-  const formatQuantity = (quantity: number) => {
-    // If quantity is a whole number, show without decimals
-    if (quantity % 1 === 0) {
-      return quantity.toString();
+  // Enhanced helper function to format quantity properly with extensive logging and validation
+  const formatQuantity = (quantity: any) => {
+    console.log('formatQuantity input:', quantity, 'type:', typeof quantity);
+    
+    // Handle null, undefined, or empty string
+    if (quantity === null || quantity === undefined || quantity === '') {
+      console.log('Quantity is null/undefined/empty, returning 0');
+      return '0';
     }
+    
+    // Convert to number if it's a string
+    let numQuantity;
+    if (typeof quantity === 'string') {
+      numQuantity = parseFloat(quantity);
+      console.log('Converted string to number:', numQuantity);
+    } else {
+      numQuantity = Number(quantity);
+      console.log('Converted to number:', numQuantity);
+    }
+    
+    // Check if conversion resulted in NaN
+    if (isNaN(numQuantity)) {
+      console.log('Quantity conversion resulted in NaN, returning 0');
+      return '0';
+    }
+    
+    // If quantity is a whole number, show without decimals
+    if (numQuantity % 1 === 0) {
+      const result = numQuantity.toString();
+      console.log('Whole number result:', result);
+      return result;
+    }
+    
     // If quantity has decimals, show up to 2 decimal places, removing trailing zeros
-    return parseFloat(quantity.toFixed(2)).toString();
+    const result = parseFloat(numQuantity.toFixed(2)).toString();
+    console.log('Decimal result:', result);
+    return result;
   };
 
   // FIXED: Move useEffect before early return to follow Rules of Hooks
   useEffect(() => {
     if (order) {
+      console.log('Order data in modal:', order);
+      console.log('Order items:', order.items);
+      
+      // Log each item's quantity for debugging
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item: any, index: number) => {
+          console.log(`Item ${index}:`, {
+            productName: item.productName,
+            quantity: item.quantity,
+            quantityType: typeof item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total
+          });
+        });
+      }
+      
       setEditValues({
         status: order.status || '',
         paymentMethod: order.paymentMethod || '',
@@ -572,7 +617,7 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                 </Card>
               </div>
 
-              {/* Order Items */}
+              {/* Order Items - FIXED TABLE */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -592,14 +637,20 @@ export const OrderDetailsModal = ({ open, onOpenChange, order, onOrderUpdated }:
                     </TableHeader>
                     <TableBody>
                       {order.items && order.items.length > 0 ? (
-                        order.items.map((item: any, index: number) => (
-                          <TableRow key={index}>
-                            <TableCell>{item.productName || 'Unknown Product'}</TableCell>
-                            <TableCell>{formatQuantity(item.quantity || 0)}</TableCell>
-                            <TableCell>PKR {(item.unitPrice || 0).toFixed(2)}</TableCell>
-                            <TableCell>PKR {(item.total || 0).toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))
+                        order.items.map((item: any, index: number) => {
+                          console.log(`Rendering item ${index}:`, item);
+                          const formattedQuantity = formatQuantity(item.quantity);
+                          console.log(`Formatted quantity for ${item.productName}:`, formattedQuantity);
+                          
+                          return (
+                            <TableRow key={index}>
+                              <TableCell>{item.productName || 'Unknown Product'}</TableCell>
+                              <TableCell className="font-medium text-blue-600">{formattedQuantity}</TableCell>
+                              <TableCell>PKR {(item.unitPrice || 0).toFixed(2)}</TableCell>
+                              <TableCell>PKR {(item.total || 0).toFixed(2)}</TableCell>
+                            </TableRow>
+                          );
+                        })
                       ) : (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center text-gray-500">
